@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:bit_invest_sim/Settings.dart';
 import 'package:flutter/material.dart';
 import 'package:csv/csv.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -39,6 +40,18 @@ class _AppBasePageState extends State<AppBasePage> {
       appBar: AppBar(
         title: Text('적립식 투자 시뮬레이션'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              // 클릭 시 이동할 페이지로 네비게이션
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsPage()),
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -64,8 +77,9 @@ class _AppBasePageState extends State<AppBasePage> {
                         name: coin['name']!,
                         image: coin['image']!,
                         description: coin['description']!,
-                        csvData: csvData!,
+                        csvFilePath: coin['csv']!,
                         color: coin['color']!, // CSV 데이터 전달
+                        invStartDate: coin['startDate']!,
                       ),
                     ),
                   );
@@ -85,11 +99,14 @@ class _AppBasePageState extends State<AppBasePage> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8.0),
-                        child: Image.asset(
-                          coin['image']!,
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.cover,
+                        child: Hero(
+                          tag: coin['name']!,
+                          child: Image.asset(
+                            coin['image']!,
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       SizedBox(width: 16.0),

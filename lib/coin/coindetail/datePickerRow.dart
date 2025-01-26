@@ -39,6 +39,7 @@ class DatePickerRow extends StatelessWidget {
             ),
           ),
         ),
+
         /// 캘린더 버튼
         Expanded(
           flex: 3,
@@ -48,7 +49,8 @@ class DatePickerRow extends StatelessWidget {
                 context: context,
                 builder: (_) {
                   final DateTime now = DateTime.now();
-                  final DateTime safeMinDate = minimumDate ?? DateTime(2000, 1, 1);
+                  final DateTime safeMinDate =
+                      minimumDate ?? DateTime(2000, 1, 1);
                   final DateTime initDate = selectedDate ??
                       (safeMinDate.isBefore(now) ? safeMinDate : now);
 
@@ -74,7 +76,10 @@ class DatePickerRow extends StatelessWidget {
             ),
             label: Text(
               label,
-              style: const TextStyle(color: Colors.black),
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 14.0,
+              ),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
