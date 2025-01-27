@@ -50,22 +50,12 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
   // 계산 결과
   bool showResults = false;
   bool showGraph = false;
-  Map<String, double> _investmentResult = {};
+  Map<String, dynamic> _investmentResult = {};
   late List<FlSpot> flSpots;
   List<DateTime> sortedDates = [];
 
   // 로딩 표시
   bool _isLoading = false;
-
-  Map<DateTime, double> priceData1 = {
-    DateTime(2023, 1, 15): 50000.0,
-    DateTime(2023, 2, 15): 52000.0,
-    DateTime(2023, 3, 15): 51000.0,
-    DateTime(2023, 4, 15): 50000.0,
-    DateTime(2023, 5, 15): 52000.0,
-    DateTime(2023, 6, 15): 51000.0,
-    // 추가 데이터...
-  };
 
   @override
   void initState() {
@@ -73,7 +63,6 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
     startDate = widget.invStartDate;
     endDate = DateTime.now();
     _amountController.text = '100'; // 기본값 100 설정
-    flSpots = convertPriceDataToFlSpots(priceData1);
   }
 
 // FlSpot 리스트로 변환하는 함수
@@ -481,119 +470,9 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
                           Column(
                             children: [
                               showGraph
-                                  ? Column(
-                                      children: [
-                                        const SizedBox(height: 16.0),
-                                        Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: SizedBox(
-                                            height: 300,
-                                            child: LineChart(
-                                              LineChartData(
-                                                gridData: const FlGridData(
-                                                    show: true),
-                                                titlesData: FlTitlesData(
-                                                  topTitles: const AxisTitles(
-                                                    axisNameWidget: Text(
-                                                      '누적자산',
-                                                      style: TextStyle(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                    axisNameSize: 30,
-                                                    sideTitles: SideTitles(
-                                                        showTitles: false),
-                                                  ),
-                                                  bottomTitles: AxisTitles(
-                                                    axisNameSize: 40,
-                                                    axisNameWidget: const Text(
-                                                      '투자기간',
-                                                      style: TextStyle(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                    sideTitles: SideTitles(
-                                                      showTitles: true,
-                                                      reservedSize: 20,
-                                                      interval:
-                                                          (flSpots.length / 5)
-                                                              .ceilToDouble(),
-                                                      getTitlesWidget:
-                                                          (value, meta) {
-                                                        // 예: x=0~5이면 "1개월차", "2개월차" 처럼 표시 가능
-                                                        // 실제로는 index->Date 변환해 '1/15' 식으로 찍어도 됨
-                                                        if (value.toInt() >=
-                                                                0 &&
-                                                            value.toInt() <
-                                                                flSpots
-                                                                    .length) {
-                                                          return Text(
-                                                              '${value.toInt() + 1}개월차');
-                                                        }
-                                                        return const Text('');
-                                                      },
-                                                    ),
-                                                  ),
-                                                  leftTitles: const AxisTitles(
-                                                    axisNameSize: 40,
-                                                    axisNameWidget: Text(
-                                                      '자산가격',
-                                                      style: TextStyle(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                    sideTitles: SideTitles(
-                                                      showTitles: false,
-                                                    ),
-                                                  ),
-                                                  rightTitles: const AxisTitles(
-                                                    sideTitles: SideTitles(
-                                                      showTitles: true,
-                                                      reservedSize: 50,
-                                                      interval: 10000,
-                                                    ),
-                                                  ),
-                                                ),
-                                                borderData: FlBorderData(
-                                                  show: true,
-                                                  border: Border.all(
-                                                      color: Colors.black,
-                                                      width: 2),
-                                                ),
-                                                minX: 0,
-                                                maxX:
-                                                    flSpots.length.toDouble() -
-                                                        1,
-                                                minY: flSpots
-                                                        .map((spot) => spot.y)
-                                                        .reduce((a, b) =>
-                                                            a < b ? a : b) *
-                                                    0.95,
-                                                maxY: flSpots
-                                                        .map((spot) => spot.y)
-                                                        .reduce((a, b) =>
-                                                            a > b ? a : b) *
-                                                    1.05,
-                                                lineBarsData: [
-                                                  LineChartBarData(
-                                                    spots: flSpots,
-                                                    isCurved: true,
-                                                    barWidth: 3,
-                                                    dotData:
-                                                        FlDotData(show: true),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                  ? InvestmentLineChart(
+                                      investmentSpots:
+                                          _investmentResult['investmentSpots'],
                                     )
                                   : const SizedBox.shrink(),
                             ],
@@ -608,6 +487,144 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// LineChart를 표시하는 위젯
+class InvestmentLineChart extends StatelessWidget {
+  final List<InvestmentSpot> investmentSpots;
+
+  const InvestmentLineChart({
+    Key? key,
+    required this.investmentSpots,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // flSpots 생성: InvestmentSpot을 FlSpot으로 변환
+    List<FlSpot> flSpots = investmentSpots
+        .asMap()
+        .entries
+        .map((entry) => FlSpot(entry.key.toDouble(), entry.value.asset))
+        .toList();
+
+    return Column(
+      children: [
+        const SizedBox(height: 16.0),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SizedBox(
+            height: 300,
+            child: LineChart(
+              LineChartData(
+                lineTouchData: LineTouchData(
+                  enabled: true, // 터치를 활성화
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (touchedSpots) {
+                      // touchedSpots에 따라 색상 다르게 줄 수도 있음
+                      return Colors.white;
+                    },
+                    tooltipRoundedRadius: 8.0, // 툴팁 테두리 둥글게
+                    tooltipBorder: BorderSide(color: Colors.black, width: 1.5),
+
+                    getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                      return touchedSpots.map((spot) {
+                        // 각 spot(점)에 대한 tooltip 표시 정보를 생성
+                        return LineTooltipItem(
+                          // 예: "x: 3, y: 5.12" 형식으로 표현
+                          '${spot.x.round()}개월\n'
+                          '${spot.y.toStringAsFixed(2)}%',
+                          const TextStyle(
+                            color: Colors.black, // 툴팁 문자 색상
+                            fontWeight: FontWeight.bold,
+                          ),
+                        );
+                      }).toList();
+                    },
+                  ),
+                  // 기타 터치 관련 설정
+                  handleBuiltInTouches: true,
+                ),
+                gridData: const FlGridData(show: true),
+                titlesData: FlTitlesData(
+                  topTitles: AxisTitles(
+                    axisNameWidget: const Text(
+                      '누적자산',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    axisNameSize: 30,
+                    sideTitles: const SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    axisNameSize: 40,
+                    axisNameWidget: const Text(
+                      '투자기간 (개월)',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 20,
+                      interval: 6,
+                      getTitlesWidget: (value, meta) {
+                        if (value.toInt() >= 0 &&
+                            value.toInt() < flSpots.length) {
+                          return Text('${value.toInt()}');
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    axisNameSize: 40,
+                    axisNameWidget: const Text(
+                      '수익률 (%)',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    sideTitles: const SideTitles(showTitles: false),
+                  ),
+                  rightTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 50,
+                      interval: 100,
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(
+                  show: true,
+                  border: Border.all(color: Colors.black, width: 2),
+                ),
+                minX: 0,
+                maxX: flSpots.length.toDouble() - 1,
+                minY: -100,
+                maxY: (flSpots
+                        .map((spot) => spot.y)
+                        .reduce((a, b) => a > b ? a : b) +
+                    10),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: flSpots,
+                    isCurved: true,
+                    barWidth: 3,
+                    color: Colors.red,
+                    dotData: FlDotData(show: true),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

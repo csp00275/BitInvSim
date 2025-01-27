@@ -51,12 +51,13 @@ class InvestmentResults extends StatelessWidget {
       return '$sign${_comma(manPart)}만원';
     }
   }
+
   Widget buildResultRow(
-      String label,
-      String value, {
-        Color? valueColor,
-        FontWeight? fontWeight, // 추가된 매개변수
-      }) {
+    String label,
+    String value, {
+    Color? valueColor,
+    FontWeight? fontWeight, // 추가된 매개변수
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -118,7 +119,6 @@ class InvestmentResults extends StatelessWidget {
       averagePriceStr = formatManToEokDetailed(avgPriceInMan);
       currentPriceStr = formatManToEokDetailed(currPriceInMan);
 
-
       // 코인 수는 소수점 4자리
       coinsPurchasedStr = '${coinsPurchased.toStringAsFixed(4)} 개';
     }
@@ -163,12 +163,12 @@ class InvestmentResults extends StatelessWidget {
           ),
           // 현재 가격
           buildResultRow(
-            '현재 가격:',
+            '코인 가격:',
             currentPriceStr,
           ),
           // 현재 가치
           buildResultRow(
-            '현재 가치:',
+            '평가 가치:',
             currentValueStr,
           ),
 
