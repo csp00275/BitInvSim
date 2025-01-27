@@ -1,4 +1,5 @@
 // lib/coin/coin_detail_page.dart
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:csv/csv.dart'; // CSV 파싱
@@ -48,16 +49,47 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
 
   // 계산 결과
   bool showResults = false;
+  bool showGraph = false;
   Map<String, double> _investmentResult = {};
+  late List<FlSpot> flSpots;
+  List<DateTime> sortedDates = [];
 
   // 로딩 표시
   bool _isLoading = false;
+
+  Map<DateTime, double> priceData1 = {
+    DateTime(2023, 1, 15): 50000.0,
+    DateTime(2023, 2, 15): 52000.0,
+    DateTime(2023, 3, 15): 51000.0,
+    DateTime(2023, 4, 15): 50000.0,
+    DateTime(2023, 5, 15): 52000.0,
+    DateTime(2023, 6, 15): 51000.0,
+    // 추가 데이터...
+  };
 
   @override
   void initState() {
     super.initState();
     startDate = widget.invStartDate;
     endDate = DateTime.now();
+    _amountController.text = '100'; // 기본값 100 설정
+    flSpots = convertPriceDataToFlSpots(priceData1);
+  }
+
+// FlSpot 리스트로 변환하는 함수
+  List<FlSpot> convertPriceDataToFlSpots(Map<DateTime, double> priceData) {
+    // 날짜를 정렬
+    sortedDates = priceData.keys.toList();
+
+    // 정렬된 날짜를 기반으로 FlSpot 생성
+    List<FlSpot> spots = [];
+    for (int i = 0; i < sortedDates.length; i++) {
+      DateTime date = sortedDates[i];
+      double price = priceData[date]!;
+      spots.add(FlSpot(i.toDouble(), price));
+    }
+
+    return spots;
   }
 
   // ---------------------------
@@ -173,6 +205,17 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
 
     // ➋ CSV 파싱 완료 후에 계산
     calculateInvestmentResults(amount);
+  }
+
+  Future<void> _onCalculateMothlyPressed() async {
+    // 폼 검증
+    if (!_formKey.currentState!.validate()) return;
+    final int amount = int.parse(_amountController.text);
+
+    setState(() {
+      showGraph = true;
+      //showGraph = !showGraph;
+    });
   }
 
   // ---------------------------
@@ -398,20 +441,168 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
                   // );
                 },
                 child: showResults
-                    ? InvestmentResults(
-                        totalInvested:
-                            _investmentResult['totalInvested'] ?? 0.0,
-                        averagePrice: _investmentResult['averagePrice'] ?? 0.0,
-                        coinsPurchased:
-                            _investmentResult['coinsPurchased'] ?? 0.0,
-                        currentPrice: _investmentResult['currentPrice'] ?? 0.0,
-                        currentValue: _investmentResult['currentValue'] ?? 0.0,
-                        profitLoss: _investmentResult['profitLoss'] ?? 0.0,
-                        titleColor: widget.color,
-                        key: const ValueKey('Results'),
-                        // AnimatedSwitcher에서 child 위젯을 구분하기 위한 key
+                    ? Column(
+                        children: [
+                          InvestmentResults(
+                            totalInvested:
+                                _investmentResult['totalInvested'] ?? 0.0,
+                            averagePrice:
+                                _investmentResult['averagePrice'] ?? 0.0,
+                            coinsPurchased:
+                                _investmentResult['coinsPurchased'] ?? 0.0,
+                            currentPrice:
+                                _investmentResult['currentPrice'] ?? 0.0,
+                            currentValue:
+                                _investmentResult['currentValue'] ?? 0.0,
+                            profitLoss: _investmentResult['profitLoss'] ?? 0.0,
+                            titleColor: widget.color,
+                            key: const ValueKey('Results'),
+                            // AnimatedSwitcher에서 child 위젯을 구분하기 위한 key
+                          ),
+                          const SizedBox(height: 16.0),
+
+                          // 결과 계산 버튼
+
+                          ElevatedButton(
+                            onPressed: _onCalculateMothlyPressed,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(200, 50),
+                              backgroundColor: widget.color,
+                            ),
+                            child: const Text(
+                              "그래프 보기",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black,
+                                fontSize: 20.0,
+                              ),
+                            ),
+                          ),
+                          Column(
+                            children: [
+                              showGraph
+                                  ? Column(
+                                      children: [
+                                        const SizedBox(height: 16.0),
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: SizedBox(
+                                            height: 300,
+                                            child: LineChart(
+                                              LineChartData(
+                                                gridData: const FlGridData(
+                                                    show: true),
+                                                titlesData: FlTitlesData(
+                                                  topTitles: const AxisTitles(
+                                                    axisNameWidget: Text(
+                                                      '누적자산',
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    axisNameSize: 30,
+                                                    sideTitles: SideTitles(
+                                                        showTitles: false),
+                                                  ),
+                                                  bottomTitles: AxisTitles(
+                                                    axisNameSize: 40,
+                                                    axisNameWidget: const Text(
+                                                      '투자기간',
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    sideTitles: SideTitles(
+                                                      showTitles: true,
+                                                      reservedSize: 20,
+                                                      interval:
+                                                          (flSpots.length / 5)
+                                                              .ceilToDouble(),
+                                                      getTitlesWidget:
+                                                          (value, meta) {
+                                                        // 예: x=0~5이면 "1개월차", "2개월차" 처럼 표시 가능
+                                                        // 실제로는 index->Date 변환해 '1/15' 식으로 찍어도 됨
+                                                        if (value.toInt() >=
+                                                                0 &&
+                                                            value.toInt() <
+                                                                flSpots
+                                                                    .length) {
+                                                          return Text(
+                                                              '${value.toInt() + 1}개월차');
+                                                        }
+                                                        return const Text('');
+                                                      },
+                                                    ),
+                                                  ),
+                                                  leftTitles: const AxisTitles(
+                                                    axisNameSize: 40,
+                                                    axisNameWidget: Text(
+                                                      '자산가격',
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    sideTitles: SideTitles(
+                                                      showTitles: false,
+                                                    ),
+                                                  ),
+                                                  rightTitles: const AxisTitles(
+                                                    sideTitles: SideTitles(
+                                                      showTitles: true,
+                                                      reservedSize: 50,
+                                                      interval: 10000,
+                                                    ),
+                                                  ),
+                                                ),
+                                                borderData: FlBorderData(
+                                                  show: true,
+                                                  border: Border.all(
+                                                      color: Colors.black,
+                                                      width: 2),
+                                                ),
+                                                minX: 0,
+                                                maxX:
+                                                    flSpots.length.toDouble() -
+                                                        1,
+                                                minY: flSpots
+                                                        .map((spot) => spot.y)
+                                                        .reduce((a, b) =>
+                                                            a < b ? a : b) *
+                                                    0.95,
+                                                maxY: flSpots
+                                                        .map((spot) => spot.y)
+                                                        .reduce((a, b) =>
+                                                            a > b ? a : b) *
+                                                    1.05,
+                                                lineBarsData: [
+                                                  LineChartBarData(
+                                                    spots: flSpots,
+                                                    isCurved: true,
+                                                    barWidth: 3,
+                                                    dotData:
+                                                        FlDotData(show: true),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : const SizedBox.shrink(),
+                            ],
+                          ),
+                        ],
                       )
-                    : const SizedBox.shrink(), // 보여줄 게 없으면 빈 박스
+                    : const SizedBox.shrink(),
+
+                // 보여줄 게 없으면 빈 박스
               ),
             ],
           ),
