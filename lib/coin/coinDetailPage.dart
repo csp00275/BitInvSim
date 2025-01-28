@@ -57,12 +57,22 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
   // 로딩 표시
   bool _isLoading = false;
 
+  // 스크롤 컨트롤러
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     startDate = widget.invStartDate;
     endDate = DateTime.now();
     _amountController.text = '100'; // 기본값 100 설정
+  }
+
+  @override
+  void dispose() {
+    // 메모리 누수를 막기 위해 dispose 필요
+    _scrollController.dispose();
+    super.dispose();
   }
 
 // FlSpot 리스트로 변환하는 함수
@@ -194,6 +204,16 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
 
     // ➋ CSV 파싱 완료 후에 계산
     calculateInvestmentResults(amount);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 500), // 애니메이션 시간
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   Future<void> _onCalculateMothlyPressed() async {
@@ -204,6 +224,16 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
     setState(() {
       showGraph = true;
       //showGraph = !showGraph;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 500), // 애니메이션 시간
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
@@ -229,24 +259,35 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.name),
+        title: Text(
+          widget.name,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: widget.color.computeLuminance() > 0.3
+                ? Colors.black
+                : Colors.white,
+          ),
+        ),
         centerTitle: true,
         backgroundColor: widget.color,
       ),
-      body: Stack(
-        children: [
-          // 메인 컨텐츠
-          _buildMainContent(),
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            // 메인 컨텐츠
+            _buildMainContent(),
 
-          // 로딩 중일 때 인디케이터
-          if (_isLoading)
-            Container(
-              color: Colors.black26,
-              child: const Center(
-                child: CircularProgressIndicator(),
+            // 로딩 중일 때 인디케이터
+            if (_isLoading)
+              Container(
+                color: Colors.black26,
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -256,235 +297,262 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
       padding: const EdgeInsets.all(16.0),
       child: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // (코인 이미지 - Hero)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16.0),
-                child: Hero(
-                  tag: widget.name,
-                  child: Image.asset(
-                    widget.image,
-                    width: 150,
-                    height: 150,
-                    fit: BoxFit.cover,
-                  ),
+        child: Column(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16.0),
+              child: Hero(
+                tag: widget.name,
+                child: Image.asset(
+                  widget.image,
+                  width: 150,
+                  height: 150,
+                  fit: BoxFit.cover,
                 ),
               ),
-              const SizedBox(height: 16.0),
+            ),
+            const SizedBox(height: 16.0),
 
-              // 코인 설명
-              Text(
-                widget.description,
-                style: TextStyle(fontSize: 16.0, color: Colors.grey[700]),
+            // 코인 설명
+            Text(
+              widget.description,
+              style: TextStyle(
+                fontSize: 16.0,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w900,
               ),
-              const SizedBox(height: 16.0),
+            ),
+            const SizedBox(height: 16.0),
+            Expanded(
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                child: Column(
+                  children: [
+                    // (코인 이미지 - Hero)
 
-              // 투자 시작일 / 종료일 Picker
-              // ---------------------------------
-              DatePickerRow(
-                label: '투자 시작',
-                selectedDate: startDate,
-                mainColor: widget.color,
-                minimumDate: earliestDate,
-                onDateSelected: (picked) {
-                  setState(() {
-                    startDate = picked;
-                    if (endDate != null && endDate!.isBefore(startDate!)) {
-                      endDate = startDate;
-                    }
-                  });
-                },
-              ),
-              const SizedBox(height: 16.0),
-              DatePickerRow(
-                label: '투자 종료',
-                selectedDate: endDate,
-                mainColor: widget.color,
-                minimumDate: startDate,
-                onDateSelected: (picked) {
-                  setState(() {
-                    endDate = picked;
-                  });
-                },
-              ),
-              const SizedBox(height: 32.0),
+                    // 투자 시작일 / 종료일 Picker
+                    // ---------------------------------
+                    DatePickerRow(
+                      label: '투자 시작',
+                      selectedDate: startDate,
+                      mainColor: widget.color,
+                      minimumDate: earliestDate,
+                      onDateSelected: (picked) {
+                        setState(() {
+                          startDate = picked;
+                          if (endDate != null &&
+                              endDate!.isBefore(startDate!)) {
+                            endDate = startDate;
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16.0),
+                    DatePickerRow(
+                      label: '투자 종료',
+                      selectedDate: endDate,
+                      mainColor: widget.color,
+                      minimumDate: startDate,
+                      onDateSelected: (picked) {
+                        setState(() {
+                          endDate = picked;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 32.0),
 
-              // 매달 투자할 날짜
-              Row(
-                children: [
-                  const Expanded(
-                    flex: 4,
-                    child: Text(
-                      "투자할 날짜 (매달):",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16.0,
+                    // 매달 투자할 날짜
+                    Row(
+                      children: [
+                        const Expanded(
+                          flex: 4,
+                          child: Text(
+                            "투자할 날짜 (매달):",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16.0,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 6,
+                          child: DropdownButtonFormField<int>(
+                            value: purchaseDay,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                            ),
+                            items: List.generate(31, (i) {
+                              final day = i + 1;
+                              return DropdownMenuItem(
+                                value: day,
+                                child: Text('$day일'),
+                              );
+                            }),
+                            onChanged: (int? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  purchaseDay = newValue;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16.0),
+
+                    // 매달 적립식 금액 (만원)
+                    Row(
+                      children: [
+                        const Expanded(
+                          flex: 4,
+                          child: Text(
+                            "적립식 금액 (만원):",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16.0,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 6,
+                          child: TextFormField(
+                            controller: _amountController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              hintText: "예: 10",
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return '금액을 입력하세요';
+                              }
+                              final amount = int.tryParse(value);
+                              if (amount == null) {
+                                return '유효한 숫자를 입력하세요';
+                              }
+                              if (amount <= 0) {
+                                return '금액은 1 이상이어야 합니다';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32.0),
+
+                    // 결과 계산 버튼
+                    ElevatedButton(
+                      onPressed: _onCalculatePressed,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(200, 50),
+                        backgroundColor: widget.color,
+                        elevation: 3.0,
+                      ),
+                      child: Text(
+                        "투자 결과 계산",
+                        style: TextStyle(
+                          fontWeight: widget.color.computeLuminance() > 0.3
+                              ? FontWeight.w500
+                              : FontWeight.w700,
+                          color: widget.color.computeLuminance() > 0.3
+                              ? Colors.black
+                              : Colors.white,
+                          fontSize: 20.0,
+                        ),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    flex: 6,
-                    child: DropdownButtonFormField<int>(
-                      value: purchaseDay,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                      ),
-                      items: List.generate(31, (i) {
-                        final day = i + 1;
-                        return DropdownMenuItem(
-                          value: day,
-                          child: Text('$day일'),
+
+                    // 결과 위젯 표시
+
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      // 애니메이션 시간(필요한 만큼 조절)
+                      transitionBuilder:
+                          (Widget child, Animation<double> animation) {
+                        // 여기는 "child가 등장/퇴장할 때" 어떤 애니메이션을 적용할지 정의
+                        // 예시1) FadeTransition
+                        return FadeTransition(
+                          opacity: animation,
+                          child: child,
                         );
-                      }),
-                      onChanged: (int? newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            purchaseDay = newValue;
-                          });
-                        }
+
+                        // 예시2) ScaleTransition
+                        // return ScaleTransition(
+                        //   scale: animation,
+                        //   child: child,
+                        // );
                       },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16.0),
+                      child: showResults
+                          ? Column(
+                              children: [
+                                InvestmentResults(
+                                  totalInvested:
+                                      _investmentResult['totalInvested'] ?? 0.0,
+                                  averagePrice:
+                                      _investmentResult['averagePrice'] ?? 0.0,
+                                  coinsPurchased:
+                                      _investmentResult['coinsPurchased'] ??
+                                          0.0,
+                                  currentPrice:
+                                      _investmentResult['currentPrice'] ?? 0.0,
+                                  currentValue:
+                                      _investmentResult['currentValue'] ?? 0.0,
+                                  profitLoss:
+                                      _investmentResult['profitLoss'] ?? 0.0,
+                                  titleColor: widget.color,
+                                  key: const ValueKey('Results'),
+                                  // AnimatedSwitcher에서 child 위젯을 구분하기 위한 key
+                                ),
+                                const SizedBox(height: 16.0),
 
-              // 매달 적립식 금액 (만원)
-              Row(
-                children: [
-                  const Expanded(
-                    flex: 4,
-                    child: Text(
-                      "적립식 금액 (만원):",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16.0,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 6,
-                    child: TextFormField(
-                      controller: _amountController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: "예: 10",
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return '금액을 입력하세요';
-                        }
-                        final amount = int.tryParse(value);
-                        if (amount == null) {
-                          return '유효한 숫자를 입력하세요';
-                        }
-                        if (amount <= 0) {
-                          return '금액은 1 이상이어야 합니다';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32.0),
+                                // 결과 계산 버튼
 
-              // 결과 계산 버튼
-              ElevatedButton(
-                onPressed: _onCalculatePressed,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                  backgroundColor: widget.color,
+                                ElevatedButton(
+                                  onPressed: _onCalculateMothlyPressed,
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size(200, 50),
+                                    backgroundColor: widget.color,
+                                    elevation: 3.0,
+                                  ),
+                                  child: Text(
+                                    "그래프 보기",
+                                    style: TextStyle(
+                                      fontWeight:
+                                          widget.color.computeLuminance() > 0.3
+                                              ? FontWeight.w500
+                                              : FontWeight.w700,
+                                      color:
+                                          widget.color.computeLuminance() > 0.3
+                                              ? Colors.black
+                                              : Colors.white,
+                                      fontSize: 20.0,
+                                    ),
+                                  ),
+                                ),
+                                Column(
+                                  children: [
+                                    showGraph
+                                        ? InvestmentLineChart(
+                                            investmentSpots: _investmentResult[
+                                                'investmentSpots'],
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ],
+                                ),
+                              ],
+                            )
+                          : const SizedBox.shrink(),
+
+                      // 보여줄 게 없으면 빈 박스
+                    ),
+                  ],
                 ),
-                child: const Text(
-                  "투자 결과 계산",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black,
-                    fontSize: 20.0,
-                  ),
-                ),
               ),
-
-              // 결과 위젯 표시
-
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                // 애니메이션 시간(필요한 만큼 조절)
-                transitionBuilder: (Widget child, Animation<double> animation) {
-                  // 여기는 "child가 등장/퇴장할 때" 어떤 애니메이션을 적용할지 정의
-                  // 예시1) FadeTransition
-                  return FadeTransition(
-                    opacity: animation,
-                    child: child,
-                  );
-
-                  // 예시2) ScaleTransition
-                  // return ScaleTransition(
-                  //   scale: animation,
-                  //   child: child,
-                  // );
-                },
-                child: showResults
-                    ? Column(
-                        children: [
-                          InvestmentResults(
-                            totalInvested:
-                                _investmentResult['totalInvested'] ?? 0.0,
-                            averagePrice:
-                                _investmentResult['averagePrice'] ?? 0.0,
-                            coinsPurchased:
-                                _investmentResult['coinsPurchased'] ?? 0.0,
-                            currentPrice:
-                                _investmentResult['currentPrice'] ?? 0.0,
-                            currentValue:
-                                _investmentResult['currentValue'] ?? 0.0,
-                            profitLoss: _investmentResult['profitLoss'] ?? 0.0,
-                            titleColor: widget.color,
-                            key: const ValueKey('Results'),
-                            // AnimatedSwitcher에서 child 위젯을 구분하기 위한 key
-                          ),
-                          const SizedBox(height: 16.0),
-
-                          // 결과 계산 버튼
-
-                          ElevatedButton(
-                            onPressed: _onCalculateMothlyPressed,
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(200, 50),
-                              backgroundColor: widget.color,
-                            ),
-                            child: const Text(
-                              "그래프 보기",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black,
-                                fontSize: 20.0,
-                              ),
-                            ),
-                          ),
-                          Column(
-                            children: [
-                              showGraph
-                                  ? InvestmentLineChart(
-                                      investmentSpots:
-                                          _investmentResult['investmentSpots'],
-                                    )
-                                  : const SizedBox.shrink(),
-                            ],
-                          ),
-                        ],
-                      )
-                    : const SizedBox.shrink(),
-
-                // 보여줄 게 없으면 빈 박스
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

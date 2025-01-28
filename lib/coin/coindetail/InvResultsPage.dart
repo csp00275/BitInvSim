@@ -55,6 +55,7 @@ class InvestmentResults extends StatelessWidget {
   Widget buildResultRow(
     String label,
     String value, {
+    bool rich = false,
     Color? valueColor,
     FontWeight? fontWeight, // 추가된 매개변수
   }) {
@@ -77,15 +78,29 @@ class InvestmentResults extends StatelessWidget {
           // 값 (오른쪽 정렬)
           Expanded(
             flex: 5,
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 20.0,
-                color: valueColor ?? Colors.black,
-                fontWeight: fontWeight ?? FontWeight.normal, // 적용
-              ),
-            ),
+            child: rich
+                ? RichText(
+                    // rich가 true일 때 Text.rich 사용
+                    text: TextSpan(
+                      text: value,
+                      style: TextStyle(
+                        fontSize: 20.0,
+                        color: valueColor ?? Colors.black,
+                        fontWeight: fontWeight ?? FontWeight.normal,
+                      ),
+                    ),
+                    textAlign: TextAlign.right,
+                  )
+                : Text(
+                    // 기본 Text 사용
+                    value,
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      fontSize: 20.0,
+                      color: valueColor ?? Colors.black,
+                      fontWeight: fontWeight ?? FontWeight.normal,
+                    ),
+                  ),
           ),
         ],
       ),
@@ -177,7 +192,8 @@ class InvestmentResults extends StatelessWidget {
             '수익/손실:',
             profitLossStr,
             valueColor: (profitLoss >= 0) ? Colors.green.shade700 : Colors.red,
-            fontWeight: FontWeight.bold, // 볼드 적용
+            fontWeight: FontWeight.bold, // 볼드
+            rich: true,
           ),
           // 수익률/손실률 (볼드 적용)
           buildResultRow(
@@ -185,6 +201,7 @@ class InvestmentResults extends StatelessWidget {
             profitLossPerStr,
             valueColor: (profitLoss >= 0) ? Colors.green.shade700 : Colors.red,
             fontWeight: FontWeight.bold, // 볼드 적용
+            rich: true,
           ),
         ],
       ),
