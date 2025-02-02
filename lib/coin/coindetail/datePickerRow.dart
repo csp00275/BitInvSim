@@ -84,6 +84,13 @@ class DatePickerRow extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: mainColor,
+              /*shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8), // 원하는 둥글기
+                side: BorderSide(
+                  color: mainColor, // 테두리 색상
+                  width: 2, // 테두리 두께
+                ),
+              ),*/
             ),
           ),
         ),

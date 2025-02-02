@@ -6,7 +6,6 @@ import 'package:flutter/services.dart' show rootBundle;
 
 import '../data/coin_data.dart';
 import 'coinDetailPage.dart';
-import '';
 
 class AppBasePage extends StatefulWidget {
   @override
@@ -38,7 +37,7 @@ class _AppBasePageState extends State<AppBasePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('적립식 투자 시뮬레이션'),
+        title: const Text('적립식 투자 시뮬레이션'),
         centerTitle: true,
         actions: [
           IconButton(
@@ -72,15 +71,25 @@ class _AppBasePageState extends State<AppBasePage> {
                   // 새로운 페이지로 이동
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => CoinDetailPage(
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          CoinDetailPage(
                         name: coin['name']!,
                         image: coin['image']!,
                         description: coin['description']!,
                         csvFilePath: coin['csv']!,
-                        color: coin['color']!, // CSV 데이터 전달
+                        color: coin['color']!,
                         invStartDate: coin['startDate']!,
                       ),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        );
+                      },
+                      transitionDuration:
+                          const Duration(milliseconds: 300), // 애니메이션 속도 설정
                     ),
                   );
                 } catch (e) {
@@ -116,12 +125,12 @@ class _AppBasePageState extends State<AppBasePage> {
                           children: [
                             Text(
                               coin['name']!,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 18.0,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(height: 8.0),
+                            const SizedBox(height: 8.0),
                             Text(
                               coin['description']!,
                               style: TextStyle(

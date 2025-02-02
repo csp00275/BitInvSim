@@ -1,10 +1,11 @@
-// lib/coin/coin_detail_page.dart
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:csv/csv.dart'; // CSV 파싱
 import 'package:intl/intl.dart';
+import 'dart:math' as math;
 
+import '../data/coin_data.dart';
 import 'coindetail/InvResultsPage.dart';
 import 'coindetail/InvSettingsPage.dart';
 import 'coindetail/datePickerRow.dart';
@@ -20,14 +21,14 @@ class CoinDetailPage extends StatefulWidget {
   final DateTime invStartDate;
 
   const CoinDetailPage({
-    Key? key,
+    super.key,
     required this.name,
     required this.image,
     required this.csvFilePath,
     required this.description,
     required this.color,
     required this.invStartDate,
-  }) : super(key: key);
+  });
 
   @override
   State<CoinDetailPage> createState() => _CoinDetailPageState();
@@ -143,10 +144,10 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
 
         // 날짜 범위 세팅
         if (priceData.isNotEmpty) {
-          final sortedDates = priceData.keys.toList()..sort();
-          earliestDate = sortedDates.first;
-          startDate = sortedDates.first;
-          endDate = sortedDates.last;
+          final sortedDates = priceData.keys.toList();
+          earliestDate ??= sortedDates.first;
+          startDate ??= sortedDates.first;
+          endDate ??= sortedDates.last;
         }
       });
     } catch (e) {
@@ -219,7 +220,7 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
   Future<void> _onCalculateMothlyPressed() async {
     // 폼 검증
     if (!_formKey.currentState!.validate()) return;
-    final int amount = int.parse(_amountController.text);
+    //final int amount = int.parse(_amountController.text);
 
     setState(() {
       showGraph = true;
@@ -336,7 +337,9 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
                       label: '투자 시작',
                       selectedDate: startDate,
                       mainColor: widget.color,
-                      minimumDate: earliestDate,
+                      minimumDate: widget.invStartDate,
+                      // 기본 최소 날짜 설정
+
                       onDateSelected: (picked) {
                         setState(() {
                           startDate = picked;
@@ -532,6 +535,9 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
                                     ),
                                   ),
                                 ),
+                                showGraph
+                                    ? const SizedBox.shrink()
+                                    : const SizedBox(height: 32.0),
                                 Column(
                                   children: [
                                     showGraph
@@ -564,9 +570,9 @@ class InvestmentLineChart extends StatelessWidget {
   final List<InvestmentSpot> investmentSpots;
 
   const InvestmentLineChart({
-    Key? key,
+    super.key,
     required this.investmentSpots,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -594,7 +600,8 @@ class InvestmentLineChart extends StatelessWidget {
                       return Colors.white;
                     },
                     tooltipRoundedRadius: 8.0, // 툴팁 테두리 둥글게
-                    tooltipBorder: BorderSide(color: Colors.black, width: 1.5),
+                    tooltipBorder:
+                        const BorderSide(color: Colors.black, width: 1.5),
 
                     getTooltipItems: (List<LineBarSpot> touchedSpots) {
                       return touchedSpots.map((spot) {
@@ -616,8 +623,8 @@ class InvestmentLineChart extends StatelessWidget {
                 ),
                 gridData: const FlGridData(show: true),
                 titlesData: FlTitlesData(
-                  topTitles: AxisTitles(
-                    axisNameWidget: const Text(
+                  topTitles: const AxisTitles(
+                    axisNameWidget: Text(
                       '누적자산',
                       style: TextStyle(
                         fontSize: 16,
@@ -625,7 +632,7 @@ class InvestmentLineChart extends StatelessWidget {
                       ),
                     ),
                     axisNameSize: 30,
-                    sideTitles: const SideTitles(showTitles: false),
+                    sideTitles: SideTitles(showTitles: false),
                   ),
                   bottomTitles: AxisTitles(
                     axisNameSize: 40,
@@ -649,23 +656,26 @@ class InvestmentLineChart extends StatelessWidget {
                       },
                     ),
                   ),
-                  leftTitles: AxisTitles(
+                  leftTitles: const AxisTitles(
                     axisNameSize: 40,
-                    axisNameWidget: const Text(
+                    axisNameWidget: Text(
                       '수익률 (%)',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    sideTitles: const SideTitles(showTitles: false),
+                    sideTitles: SideTitles(showTitles: false),
                   ),
                   rightTitles: AxisTitles(
                     sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 50,
-                      interval: 100,
-                    ),
+                        showTitles: true,
+                        reservedSize: 50,
+                        interval:
+                            flSpots.map((spot) => spot.y).reduce(math.max) >
+                                    1000.0
+                                ? 500.0
+                                : 100.0),
                   ),
                 ),
                 borderData: FlBorderData(
@@ -675,17 +685,16 @@ class InvestmentLineChart extends StatelessWidget {
                 minX: 0,
                 maxX: flSpots.length.toDouble() - 1,
                 minY: -100,
-                maxY: (flSpots
-                        .map((spot) => spot.y)
-                        .reduce((a, b) => a > b ? a : b) +
-                    10),
+                maxY: (flSpots.map((spot) => spot.y).reduce(math.max) / 100)
+                        .ceil() *
+                    100.0,
                 lineBarsData: [
                   LineChartBarData(
                     spots: flSpots,
                     isCurved: true,
                     barWidth: 3,
                     color: Colors.red,
-                    dotData: FlDotData(show: true),
+                    dotData: const FlDotData(show: true),
                   ),
                 ],
               ),

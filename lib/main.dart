@@ -1,18 +1,12 @@
-import 'package:bit_invest_sim/signup/loginPage.dart';
-import 'package:bit_invest_sim/signup/signPage.dart';
+import 'package:bit_invest_sim/splashScreen.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 
+// 앱의 주요 페이지 import
 import 'coin/appBasePage.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized(); // Flutter 엔진 초기화
-  try {
-    await Firebase.initializeApp(); // Firebase 초기화
-    print("Firebase 초기화 성공!");
-  } catch (e) {
-    print("Firebase 초기화 실패: $e");
-  }
+  // Firebase 초기화 코드 제거
   runApp(MyApp());
 }
 
@@ -25,14 +19,13 @@ class MyApp extends StatelessWidget {
       title: 'Bit Simulation',
       theme: ThemeData(
         primarySwatch: Colors.yellow,
-        textTheme: TextTheme(
+        textTheme: const TextTheme(
           bodyLarge: TextStyle(color: Colors.black),
         ),
       ),
-      initialRoute: '/',
+      initialRoute: '/splash', // 초기 라우트를 스플래시로 변경
       routes: {
-        '/': (context) => LoginPage(),
-        '/sign': (context) => SignPage(),
+        '/splash': (context) => SplashScreen(), // 스플래시 화면 추가
         '/base': (context) => AppBasePage(),
       },
     );

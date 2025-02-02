@@ -6,7 +6,6 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('Building login');
     return Scaffold(
       appBar: AppBar(
         title: Text('로그인'),
@@ -47,7 +46,6 @@ class LoginPage extends StatelessWidget {
                     _showDialog(context, '빈칸이 있습니다!');
                   } else {
                     // 여기에 로그인 로직 추가
-                    print('아이디: $id, 비밀번호: $password');
                     _showDialog(context, '로그인 성공!');
                     Navigator.pushNamed(context, '/base'); // 회원가입 화면으로 이동
                   }

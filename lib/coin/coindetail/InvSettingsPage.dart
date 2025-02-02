@@ -1,5 +1,3 @@
-import 'package:intl/intl.dart';
-
 /// 연도[year]와 달[month]을 받아 해당 월의 일 수를 반환
 int daysInMonth(int year, int month) {
   // 2월 처리 (윤년 여부)
@@ -74,76 +72,92 @@ class InvestmentCalculator {
     required int monthlyAmount, // 만원 단위
   }) {
     // ------------------------------
-    // 1) 월 단위로 순회하기 위한 준비
+    // (1) 반복범위 준비
     // ------------------------------
     int currentYear = startDate.year;
     int currentMonth = startDate.month;
-    int i = 0;
 
     final int lastYear = endDate.year;
     final int lastMonth = endDate.month;
 
     // ------------------------------
-    // 2) 누적 변수
+    // (2) 누적 변수
     // ------------------------------
     double totalCoins = 0.0; // 누적 코인 수
     double totalInvestedManny = 0.0; // 누적 투자금 (만원)
-    List<InvestmentSpot> investmentSpots = []; // 월별 투자 및 자산 정보
+
+    // "월별 그래프"용 저장
+    List<InvestmentSpot> investmentSpots = [];
+    int loopCount = 0;
 
     // ------------------------------
-    // 3) 월 단위로 반복
+    // (3) 월 단위로 반복
+    //     => 마지막 달까지 포함하려면 <= 조건
     // ------------------------------
     while ((currentYear < lastYear) ||
-        (currentYear == lastYear && currentMonth + 1 <= lastMonth)) {
-      // 3-1) 이 달의 마지막 일 수
+        (currentYear == lastYear && currentMonth <= lastMonth)) {
+      // ------------------------------------------------
+      // (3-1) "매수 로직": 이 달에 실제로 매수하는 날짜 = buyDate
+      // ------------------------------------------------
       final int dim = daysInMonth(currentYear, currentMonth);
-
-      // 3-2) 만약 purchaseDay가 달의 일 수보다 크면 말일로 보정
       final int finalDay = (purchaseDay > dim) ? dim : purchaseDay;
+      final DateTime buyDate = DateTime(currentYear, currentMonth, finalDay);
 
-      // 3-3) 해당 날짜 DateTime
-      final DateTime investDate = DateTime(currentYear, currentMonth, finalDay);
-
-      // 3-4) priceData에서 그 날짜 종가(dayPrice) 찾기
-      final double? dayPrice = priceData[investDate];
-
-      // 3-5) 데이터가 있으면 투자 진행
+      // priceData에서 구매일 시세 가져오기
+      final double? dayPrice = priceData[buyDate];
       if (dayPrice != null) {
-        // 이 달에 투자한 금액(원)
+        // 매수
         final double investKRW = monthlyAmount * 10000; // 만원 -> 원
-        // 이 달에 매수한 코인 수
         final double monthlyCoins = investKRW / dayPrice;
 
-        // 누적
         totalCoins += monthlyCoins;
         totalInvestedManny += monthlyAmount;
       }
 
-      final double currentPrice = priceData[endDate] ?? 0.0;
-      final double currentValue = (totalCoins * currentPrice) / 10000.0; // 만원
-      double currentMoney = i * monthlyAmount.toDouble();
+      // ------------------------------------------------
+      // (3-2) "평가 로직": 이 달 말일 시세로 내 자산 평가
+      // ------------------------------------------------
+      // 말일 구하기
+      final int lastDayOfMonth = daysInMonth(currentYear, currentMonth);
+      final DateTime monthlyCloseDate =
+          DateTime(currentYear, currentMonth, lastDayOfMonth);
 
-      // (4) 수익률 계산
-      double profitPer = 0;
-      if (currentMoney != 0) {
-        profitPer =
-            ((totalCoins * dayPrice! / 10000.0 - currentMoney) / currentMoney) *
-                100.0;
-        profitPer = double.parse(profitPer.toStringAsFixed(2));
+      double? monthlyClosePrice = priceData[monthlyCloseDate];
+      // 만약 null이면, 직전 영업일 등을 찾아야 하지만 여기서는 생략
+      if (monthlyClosePrice == null) {
+        monthlyClosePrice = 0.0;
       }
 
-      // (5) NaN / Infinite 방지
-      if (profitPer.isNaN || profitPer.isInfinite) {
-        profitPer = 0;
-      }
-      investmentSpots.add(InvestmentSpot(
-        month: i,
-        asset: profitPer,
-      ));
+      // 달 말일 기준: 내 총자산(만원)
+      final double monthlyValue = (totalCoins * monthlyClosePrice) / 10000.0;
 
-      // 3-6) 다음 달로 이동
+      // “내가 지금까지 투자한 금액(만원)” = totalInvestedManny
+      // 수익(또는 손실) = (monthlyValue - totalInvestedManny)
+      // 수익률(%) = ((monthlyValue - totalInvestedManny) / totalInvestedManny)*100
+      double profitPercent = 0;
+      if (totalInvestedManny > 0) {
+        profitPercent =
+            ((monthlyValue - totalInvestedManny) / totalInvestedManny) * 100.0;
+      }
+
+      // 소수점 자리수 정리(필요하다면)
+      profitPercent = double.parse(profitPercent.toStringAsFixed(2));
+
+      // (3-3) 그래프 데이터를 쌓는다
+      //   month: 몇 번째 달인지
+      //   asset: 여기서는 "수익률(%)"를 예시로 저장
+      investmentSpots.add(
+        InvestmentSpot(
+          month: loopCount,
+          asset: profitPercent,
+        ),
+      );
+
+      // ------------------------------
+      // (3-4) 다음 달로
+      // ------------------------------
       currentMonth++;
-      i++;
+      loopCount++;
       if (currentMonth > 12) {
         currentMonth = 1;
         currentYear++;
@@ -151,39 +165,35 @@ class InvestmentCalculator {
     }
 
     // ------------------------------
-    // 4) 최종 계산
+    // (4) 최종 계산
     // ------------------------------
-    // 총 투자금 (만원)
+    // totalInvestedManny(만원) = 그동안 투자한 총액
     final double totalInvested = totalInvestedManny;
 
-    // 평균매수가(원)
-    // (총 투자금(원) / 총 코인 수) = ((totalInvested(만원)*10000) / totalCoins)
-    final double averagePrice =
-        (totalCoins > 0) ? ((totalInvested * 10000) / totalCoins) : 0.0;
-
-    // 구매 코인 수
-    final double coinsPurchased = totalCoins;
-
-    // 현재 가격(원) (없으면 averagePrice 사용)
+    // 코인을 하나도 못 샀으면 모두 0
+    double averagePrice = 0.0;
+    if (totalCoins > 0) {
+      // (총 투자금(원) / 총 코인)
+      averagePrice = (totalInvestedManny * 10000) / totalCoins;
+    }
+    // 종료일 시세
     final double currentPrice = priceData[endDate] ?? averagePrice;
-
-    // 현재 가치(만원) = (코인 수 × 종료일 시세(원)) / 10000
-    final double currentValue = (coinsPurchased * currentPrice) / 10000.0;
-
+    // 현재 가치(만원)
+    final double currentValue = (totalCoins * currentPrice) / 10000.0;
     // 수익/손실(만원)
     final double profitLoss = currentValue - totalInvested;
 
     // ------------------------------
-    // 5) 결과 반환
+    // (5) 결과 반환
     // ------------------------------
     return {
-      'totalInvested': totalInvested, // 총 투자금 (만원)
-      'averagePrice': averagePrice, // 평균매수가 (원)
-      'coinsPurchased': coinsPurchased, // 누적 코인 수
-      'currentPrice': currentPrice, // 현재(종료일) 가격 (원)
-      'currentValue': currentValue, // 현재 가치 (만원)
-      'profitLoss': profitLoss, // 수익/손실 (만원)
-      'investmentSpots': investmentSpots, // 월별 투자 및 자산 정보 리스트
+      'totalInvested': totalInvested, // 만원
+      'averagePrice': averagePrice, // 원
+      'coinsPurchased': totalCoins,
+      'currentPrice': currentPrice, // 원
+      'currentValue': currentValue, // 만원
+      'profitLoss': profitLoss, // 만원
+      'investmentSpots': investmentSpots,
     };
   }
 }
