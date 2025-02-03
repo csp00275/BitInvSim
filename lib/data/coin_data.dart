@@ -9,7 +9,7 @@ final List<Map<String, dynamic>> coinData = [
     'description': '믿는자에게 복이 있나니',
     'csv': 'assets/csv/btc.csv',
     'color': Colors.orange, // 오렌지 색상 추가
-    'startDate': DateTime(2019, 1, 14)
+    'startDate': DateTime(2018, 7, 8)
   },
   {
     'name': 'Ethereum',
@@ -17,7 +17,7 @@ final List<Map<String, dynamic>> coinData = [
     'description': '스마트 컨트랙트 혁명의 시작',
     'csv': 'assets/csv/eth.csv',
     'color': const Color(0xFF687EE3), // 연보라 색상 추가
-    'startDate': DateTime(2019, 1, 14)
+    'startDate': DateTime(2018, 7, 8)
   },
   {
     'name': 'Solana',
@@ -25,7 +25,7 @@ final List<Map<String, dynamic>> coinData = [
     'description': '속도로 승부하는 차세대 블록체인',
     'csv': 'assets/csv/sol.csv',
     'color': const Color(0xFF16C7073), // 연보라 색상 추가
-    'startDate': DateTime(2019, 1, 14)
+    'startDate': DateTime(2021, 10, 15)
   },
   {
     'name': 'Doge',
@@ -33,7 +33,7 @@ final List<Map<String, dynamic>> coinData = [
     'description': '이 코인은 밈인가, 화폐인가?',
     'csv': 'assets/csv/doge.csv',
     'color': const Color(0xFFD9C27E), // 연보라 색상 추가
-    'startDate': DateTime(2021, 2, 21)
+    'startDate': DateTime(2021, 2, 24)
   },
   {
     'name': 'Tron',
@@ -41,7 +41,7 @@ final List<Map<String, dynamic>> coinData = [
     'description': '분산화를 위한 중앙화된 노력',
     'csv': 'assets/csv/trx.csv',
     'color': const Color(0xFFF20544), // 연보라 색상 추가
-    'startDate': DateTime(2019, 1, 14)
+    'startDate': DateTime(2018, 7, 8)
   },
   {
     'name': 'Ripple',
@@ -49,6 +49,6 @@ final List<Map<String, dynamic>> coinData = [
     'description': '빠르고 효율적인 국제 송금',
     'csv': 'assets/csv/ripple.csv',
     'color': const Color(0xFF16C7073), // 연보라 색상 추가
-    'startDate': DateTime(2019, 1, 14)
+    'startDate': DateTime(2018, 7, 8)
   },
 ];

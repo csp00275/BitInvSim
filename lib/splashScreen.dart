@@ -18,14 +18,14 @@ class _SplashScreenState extends State<SplashScreen>
   // 단일 offset 세트 사용 (차트 애니메이션용)
   final List<Offset> points = [
     const Offset(0, -50),
-    Offset(30, -22),
-    Offset(60, -13),
+    Offset(30, -25),
+    Offset(60, -40),
     Offset(90, 2),
-    Offset(120, 18),
+    Offset(120, -10),
     Offset(150, -12),
     Offset(180, 27),
     Offset(210, -3),
-    Offset(240, 33),
+    Offset(240, 25),
     Offset(270, 12),
     Offset(300, 80),
   ];

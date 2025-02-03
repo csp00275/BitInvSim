@@ -112,7 +112,7 @@ class InvestmentResults extends StatelessWidget {
     // --------------------
     // 1) 평균 구매가격 처리
     // --------------------
-    bool isAvgPriceBelow1Man = (averagePrice < 10000);
+    bool isAvgPriceBelow1Man = (averagePrice < 100000);
     late String averagePriceStr;
     late String coinsPurchasedStr;
     late String currentPriceStr;
@@ -124,7 +124,7 @@ class InvestmentResults extends StatelessWidget {
     final String currentValueStr = formatManToEokDetailed(currentValue);
 
     if (isAvgPriceBelow1Man) {
-      // 평균가 1만원 미만 → 원 단위 표기 ("X,XXX원"), 코인 수도 정수로 콤마 ("X,XXX개")
+      // 평균가 10만원 미만 → 원 단위 표기 ("X,XXX원"), 코인 수도 정수로 콤마 ("X,XXX개")
       averagePriceStr = '${_comma(averagePrice.round())}원';
       coinsPurchasedStr = '${_comma(coinsPurchased.round())} 개';
       currentPriceStr = '${_comma(currentPrice.round())}원';

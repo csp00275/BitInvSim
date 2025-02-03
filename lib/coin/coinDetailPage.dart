@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:bit_invest_sim/data/csv_repository.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -5,7 +8,6 @@ import 'package:csv/csv.dart'; // CSV 파싱
 import 'package:intl/intl.dart';
 import 'dart:math' as math;
 
-import '../data/coin_data.dart';
 import 'coindetail/InvResultsPage.dart';
 import 'coindetail/InvSettingsPage.dart';
 import 'coindetail/datePickerRow.dart';
@@ -65,8 +67,17 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
   void initState() {
     super.initState();
     startDate = widget.invStartDate;
-    endDate = DateTime.now();
+    DateTime now = DateTime.now();
+    endDate = now.hour < 9
+        ? DateTime(now.year, now.month, now.day - 1)
+        : DateTime(now.year, now.month, now.day);
     _amountController.text = '100'; // 기본값 100 설정
+    // CSV 데이터를 업데이트해야 하는 경우
+    updateCsvIfNeeded(
+      assetPath: widget.csvFilePath, // 예: 'assets/csv/btc.csv'
+      filename: widget.csvFilePath.split('/').last, // 예: 'btc.csv'
+      coinName: widget.name, // 예: 'Bitcoin'
+    );
   }
 
   @override
@@ -100,14 +111,14 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
       _isLoading = true;
     });
     try {
-      // 1) 파일 읽기
-      final csvString = await rootBundle.loadString(widget.csvFilePath);
-      // 2) CSV → List<List<dynamic>> 변환
+      // assets 대신 로컬 파일에서 CSV 읽기
+      final localPath =
+          await getLocalFilePath(widget.csvFilePath.split('/').last);
+      final csvString = await File(localPath).readAsString();
+      // 나머지 파싱 로직은 그대로...
       final List<List<dynamic>> csvTable =
           const CsvToListConverter().convert(csvString, eol: '\n');
 
-      // 첫 행을 헤더로 가정 (ex: ["Date", "Close"])
-      // 나머지를 데이터 행으로
       final headers =
           csvTable.first.map((e) => e.toString().trim().toLowerCase()).toList();
       final dataRows = csvTable.skip(1);
@@ -119,7 +130,6 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
         throw Exception("CSV에 'date' 혹은 'close' 헤더가 없습니다.");
       }
 
-      // 3) date/close 컬럼 파싱
       final dateFormatter = DateFormat('yyyy-MM-dd');
       final Map<DateTime, double> parsedData = {};
 
@@ -138,11 +148,8 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
         }
       }
 
-      // 4) 파싱 결과를 state에 저장
       setState(() {
         priceData = parsedData;
-
-        // 날짜 범위 세팅
         if (priceData.isNotEmpty) {
           final sortedDates = priceData.keys.toList();
           earliestDate ??= sortedDates.first;
@@ -191,26 +198,31 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
   // (3) "투자 결과 계산" 버튼
   // ---------------------------
   Future<void> _onCalculatePressed() async {
-    // 폼 검증
     if (!_formKey.currentState!.validate()) return;
     final int amount = int.parse(_amountController.text);
 
-    // ➊ CSV가 아직 파싱 안 되었다면 먼저 로딩/파싱
+    // 1) CSV 데이터 업데이트 (업데이트가 필요한 경우)
+    await updateCsvIfNeeded(
+      assetPath: widget.csvFilePath,
+      filename: widget.csvFilePath.split('/').last,
+      coinName: widget.name,
+    );
+
+    // 2) 업데이트 후, 최신 CSV 데이터를 로컬 파일에서 재파싱하여 priceData 갱신
+    await _loadCsvAndParse();
     if (priceData.isEmpty) {
-      await _loadCsvAndParse();
-      // 로딩 실패 시 _loadCsvAndParse()에서 showErrorDialog 처리
-      // 여기서 종료 가능 (return) -> CSV 실패했으면 계산 불가
-      if (priceData.isEmpty) return;
+      showErrorDialog('CSV 데이터를 로드하지 못했습니다.');
+      return;
     }
 
-    // ➋ CSV 파싱 완료 후에 계산
+    // 3) 최신 데이터 기반으로 투자 결과 계산
     calculateInvestmentResults(amount);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 500), // 애니메이션 시간
+          duration: const Duration(milliseconds: 500),
           curve: Curves.easeOut,
         );
       }
@@ -220,13 +232,35 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
   Future<void> _onCalculateMothlyPressed() async {
     // 폼 검증
     if (!_formKey.currentState!.validate()) return;
-    //final int amount = int.parse(_amountController.text);
 
+    // CSV 업데이트가 필요하다면 업데이트 후 재파싱 (선택 사항)
+    // 만약 _onCalculatePressed에서 이미 최신 데이터로 파싱을 완료했다면 이 단계는 생략할 수 있습니다.
+    await updateCsvIfNeeded(
+      assetPath: widget.csvFilePath,
+      filename: widget.csvFilePath.split('/').last,
+      coinName: widget.name,
+    );
+    await _loadCsvAndParse(); // 최신 CSV 데이터를 다시 파싱하여 priceData 갱신
+
+    // 만약 투자 결과 계산이 CSV 데이터 변경에 따라 달라진다면, 계산 결과도 다시 계산
+    // 여기서는 그래프 데이터 생성만 업데이트한다고 가정
+    final calculator = InvestmentCalculator(priceData: priceData);
+    // 투자 결과 계산은 필요한 경우 _investmentResult를 재계산 (예: 시작일, 종료일, 투자일 등)
+    final result = calculator.calculate(
+      startDate: startDate!,
+      endDate: endDate!,
+      purchaseDay: purchaseDay,
+      monthlyAmount: int.parse(_amountController.text),
+    );
     setState(() {
+      _investmentResult = result;
       showGraph = true;
-      //showGraph = !showGraph;
     });
 
+    // 그래프 데이터를 재계산할 때 convertPriceDataToFlSpots() 등 호출 가능
+    flSpots = convertPriceDataToFlSpots(priceData);
+
+    // 스크롤 애니메이션: 그래프가 나타난 후 화면 아래로 이동
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -625,7 +659,7 @@ class InvestmentLineChart extends StatelessWidget {
                 titlesData: FlTitlesData(
                   topTitles: const AxisTitles(
                     axisNameWidget: Text(
-                      '누적자산',
+                      '투자기간 별 수익률',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
