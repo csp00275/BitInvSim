@@ -2,7 +2,7 @@ import 'package:bit_invest_sim/splashScreen.dart';
 import 'package:flutter/material.dart';
 
 // 앱의 주요 페이지 import
-import 'coin/appBasePage.dart';
+import 'appBasePage.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized(); // Flutter 엔진 초기화

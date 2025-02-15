@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'package:bit_invest_sim/Settings.dart';
+import 'package:bit_invest_sim/page_tab/05_settings/Settings.dart';
+import 'package:bit_invest_sim/data/coin_data.dart';
 import 'package:flutter/material.dart';
 import 'package:csv/csv.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-import '../data/coin_data.dart';
-import 'coinDetailPage.dart';
+import 'page_tab/02_simulation/coinDetailPage.dart';
 
 class AppBasePage extends StatefulWidget {
   @override
@@ -37,7 +37,10 @@ class _AppBasePageState extends State<AppBasePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('적립식 투자 시뮬레이션'),
+        title: const Text(
+          '적립식 투자 시뮬레이션',
+          style: TextStyle(fontSize: 20.0),
+        ),
         centerTitle: true,
         actions: [
           IconButton(

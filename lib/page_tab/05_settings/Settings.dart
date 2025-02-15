@@ -356,6 +356,10 @@ class AppInfoPage extends StatelessWidget {
                 "연락처: csp00275@gmail.com",
                 style: TextStyle(fontSize: 16.0),
               ),
+              Text(
+                "버그 및 추가 기능 제안은 위 연락처로 연락 바랍니다.",
+                style: TextStyle(fontSize: 16.0),
+              ),
               SizedBox(height: 16),
               Text(
                 "면책조항 (Disclaimer):\n"
@@ -445,7 +449,7 @@ class _BitcoinIsGodPageState extends State<BitcoinIsGodPage>
     super.initState();
     // 전체 애니메이션 시간: 항목 개수 * 0.5초 (7개면 3.5초)
     _controller = AnimationController(
-        vsync: this, duration: Duration(milliseconds: 3500));
+        vsync: this, duration: Duration(milliseconds: 2100));
 
     _fadeAnimations = List.generate(bitcoinFaithItems.length, (index) {
       double start = index / bitcoinFaithItems.length;
@@ -468,44 +472,60 @@ class _BitcoinIsGodPageState extends State<BitcoinIsGodPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('비트코인은 신인가?')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: List.generate(bitcoinFaithItems.length, (index) {
-            final item = bitcoinFaithItems[index];
-            return FadeTransition(
-              opacity: _fadeAnimations[index],
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  title: Text(
-                    item['title']!,
-                    style: const TextStyle(
-                        fontSize: 16.0, fontWeight: FontWeight.w600),
-                  ),
-                  children: [
-                    if (item.containsKey('img') && item['img'] != null)
-                      Padding(
-                        padding: const EdgeInsets.only(
-                            left: 16.0, right: 16.0, bottom: 8.0),
-                        child: Image.asset(item['img']!),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.only(
-                          left: 16.0, right: 16.0, bottom: 8.0),
-                      child: Text(
-                        item['description']!,
-                        style: const TextStyle(fontSize: 14.0, height: 1.5),
+      body: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 8.0),
+            child: Center(
+              child: Text(
+                "📌 본 페이지는 재미로 읽어주세요.",
+                style: TextStyle(fontSize: 14.0, color: Colors.grey),
+              ),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: List.generate(bitcoinFaithItems.length, (index) {
+                  final item = bitcoinFaithItems[index];
+                  return FadeTransition(
+                    opacity: _fadeAnimations[index],
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: ExpansionTile(
+                        tilePadding: EdgeInsets.zero,
+                        title: Text(
+                          item['title']!,
+                          style: const TextStyle(
+                              fontSize: 16.0, fontWeight: FontWeight.w600),
+                        ),
+                        children: [
+                          if (item.containsKey('img') && item['img'] != null)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  left: 16.0, right: 16.0, bottom: 8.0),
+                              child: Image.asset(item['img']!),
+                            ),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                                left: 16.0, right: 16.0, bottom: 8.0),
+                            child: Text(
+                              item['description']!,
+                              style:
+                                  const TextStyle(fontSize: 14.0, height: 1.5),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  );
+                }),
               ),
-            );
-          }),
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }

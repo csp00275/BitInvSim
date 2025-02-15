@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:ui';
 import 'dart:math' as math;
-import 'package:bit_invest_sim/coin/appBasePage.dart';
 import 'package:flutter/material.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
+
+import 'appBasePage.dart';
 
 class SplashScreen extends StatefulWidget {
   @override

@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:bit_invest_sim/data/csv_repository.dart';
+import 'package:bit_invest_sim/data/csvRepository.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -8,7 +8,7 @@ import 'package:csv/csv.dart'; // CSV 파싱
 import 'package:intl/intl.dart';
 import 'dart:math' as math;
 
-import 'coindetail/InvResultsPage.dart';
+import 'coindetail/InvResultDisplay.dart';
 import 'coindetail/InvSettingsPage.dart';
 import 'coindetail/datePickerRow.dart';
 
@@ -331,9 +331,10 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Form(
-        key: _formKey,
+        key: _formKey, // 전체 화면을 감싸는 단일 Form
         child: Column(
           children: [
+            // 코인 이미지 및 설명
             ClipRRect(
               borderRadius: BorderRadius.circular(16.0),
               child: Hero(
@@ -347,8 +348,6 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
               ),
             ),
             const SizedBox(height: 16.0),
-
-            // 코인 설명
             Text(
               widget.description,
               style: TextStyle(
@@ -358,33 +357,31 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
               ),
             ),
             const SizedBox(height: 16.0),
+
+            // 스크롤 가능한 영역
             Expanded(
               child: SingleChildScrollView(
                 controller: _scrollController,
                 child: Column(
                   children: [
-                    // (코인 이미지 - Hero)
-
-                    // 투자 시작일 / 종료일 Picker
-                    // ---------------------------------
+                    // 투자 시작일 선택
                     DatePickerRow(
                       label: '투자 시작',
                       selectedDate: startDate,
                       mainColor: widget.color,
                       minimumDate: widget.invStartDate,
-                      // 기본 최소 날짜 설정
-
                       onDateSelected: (picked) {
                         setState(() {
                           startDate = picked;
-                          if (endDate != null &&
-                              endDate!.isBefore(startDate!)) {
+                          if (endDate != null && endDate!.isBefore(startDate!)) {
                             endDate = startDate;
                           }
                         });
                       },
                     ),
                     const SizedBox(height: 16.0),
+
+                    // 투자 종료일 선택
                     DatePickerRow(
                       label: '투자 종료',
                       selectedDate: endDate,
@@ -398,7 +395,7 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
                     ),
                     const SizedBox(height: 32.0),
 
-                    // 매달 투자할 날짜
+                    // 매달 투자 날짜 선택
                     Row(
                       children: [
                         const Expanded(
@@ -438,7 +435,8 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
                     ),
                     const SizedBox(height: 16.0),
 
-                    // 매달 적립식 금액 (만원)
+                    // 적립식 금액 (만원) 입력
+// 적립식 금액 (만원) 입력 부분 (변경 후)
                     Row(
                       children: [
                         const Expanded(
@@ -457,6 +455,11 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
                           child: TextFormField(
                             controller: _amountController,
                             keyboardType: TextInputType.number,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) {
+                              // 텍스트 입력 완료 후 키보드 닫기
+                              FocusScope.of(context).unfocus();
+                            },
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               hintText: "예: 10",
@@ -477,10 +480,9 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 32.0),
+                    ),                    const SizedBox(height: 32.0),
 
-                    // 결과 계산 버튼
+                    // 계산 버튼 및 기타 위젯들
                     ElevatedButton(
                       onPressed: _onCalculatePressed,
                       style: ElevatedButton.styleFrom(
@@ -502,91 +504,74 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
                       ),
                     ),
 
-                    // 결과 위젯 표시
-
+                    // 투자 결과 및 그래프 위젯들이 이어짐...
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
-                      // 애니메이션 시간(필요한 만큼 조절)
                       transitionBuilder:
                           (Widget child, Animation<double> animation) {
-                        // 여기는 "child가 등장/퇴장할 때" 어떤 애니메이션을 적용할지 정의
-                        // 예시1) FadeTransition
                         return FadeTransition(
                           opacity: animation,
                           child: child,
                         );
-
-                        // 예시2) ScaleTransition
-                        // return ScaleTransition(
-                        //   scale: animation,
-                        //   child: child,
-                        // );
                       },
                       child: showResults
                           ? Column(
-                              children: [
-                                InvestmentResults(
-                                  totalInvested:
-                                      _investmentResult['totalInvested'] ?? 0.0,
-                                  averagePrice:
-                                      _investmentResult['averagePrice'] ?? 0.0,
-                                  coinsPurchased:
-                                      _investmentResult['coinsPurchased'] ??
-                                          0.0,
-                                  currentPrice:
-                                      _investmentResult['currentPrice'] ?? 0.0,
-                                  currentValue:
-                                      _investmentResult['currentValue'] ?? 0.0,
-                                  profitLoss:
-                                      _investmentResult['profitLoss'] ?? 0.0,
-                                  titleColor: widget.color,
-                                  key: const ValueKey('Results'),
-                                  // AnimatedSwitcher에서 child 위젯을 구분하기 위한 key
-                                ),
-                                const SizedBox(height: 16.0),
-
-                                // 결과 계산 버튼
-
-                                ElevatedButton(
-                                  onPressed: _onCalculateMothlyPressed,
-                                  style: ElevatedButton.styleFrom(
-                                    minimumSize: const Size(200, 50),
-                                    backgroundColor: widget.color,
-                                    elevation: 3.0,
-                                  ),
-                                  child: Text(
-                                    "그래프 보기",
-                                    style: TextStyle(
-                                      fontWeight:
-                                          widget.color.computeLuminance() > 0.3
-                                              ? FontWeight.w500
-                                              : FontWeight.w700,
-                                      color:
-                                          widget.color.computeLuminance() > 0.3
-                                              ? Colors.black
-                                              : Colors.white,
-                                      fontSize: 20.0,
-                                    ),
-                                  ),
-                                ),
-                                showGraph
-                                    ? const SizedBox.shrink()
-                                    : const SizedBox(height: 32.0),
-                                Column(
-                                  children: [
-                                    showGraph
-                                        ? InvestmentLineChart(
-                                            investmentSpots: _investmentResult[
-                                                'investmentSpots'],
-                                          )
-                                        : const SizedBox.shrink(),
-                                  ],
-                                ),
-                              ],
-                            )
+                        children: [
+                          InvestmentResults(
+                            totalInvested:
+                            _investmentResult['totalInvested'] ?? 0.0,
+                            averagePrice:
+                            _investmentResult['averagePrice'] ?? 0.0,
+                            coinsPurchased:
+                            _investmentResult['coinsPurchased'] ??
+                                0.0,
+                            currentPrice:
+                            _investmentResult['currentPrice'] ?? 0.0,
+                            currentValue:
+                            _investmentResult['currentValue'] ?? 0.0,
+                            profitLoss:
+                            _investmentResult['profitLoss'] ?? 0.0,
+                            titleColor: widget.color,
+                            key: const ValueKey('Results'),
+                          ),
+                          const SizedBox(height: 16.0),
+                          ElevatedButton(
+                            onPressed: _onCalculateMothlyPressed,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(200, 50),
+                              backgroundColor: widget.color,
+                              elevation: 3.0,
+                            ),
+                            child: Text(
+                              "그래프 보기",
+                              style: TextStyle(
+                                fontWeight:
+                                widget.color.computeLuminance() > 0.3
+                                    ? FontWeight.w500
+                                    : FontWeight.w700,
+                                color: widget.color.computeLuminance() > 0.3
+                                    ? Colors.black
+                                    : Colors.white,
+                                fontSize: 20.0,
+                              ),
+                            ),
+                          ),
+                          showGraph
+                              ? const SizedBox.shrink()
+                              : const SizedBox(height: 32.0),
+                          Column(
+                            children: [
+                              showGraph
+                                  ? InvestmentLineChart(
+                                investmentSpots: _investmentResult[
+                                'investmentSpots'],
+                              )
+                                  : const SizedBox.shrink(),
+                            ],
+                          ),
+                        ],
+                      )
                           : const SizedBox.shrink(),
-
-                      // 보여줄 게 없으면 빈 박스
                     ),
                   ],
                 ),
@@ -596,8 +581,7 @@ class _CoinDetailPageState extends State<CoinDetailPage> {
         ),
       ),
     );
-  }
-}
+  }}
 
 /// LineChart를 표시하는 위젯
 class InvestmentLineChart extends StatelessWidget {

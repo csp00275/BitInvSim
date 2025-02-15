@@ -42,7 +42,7 @@ class DatePickerRow extends StatelessWidget {
 
         /// 캘린더 버튼
         Expanded(
-          flex: 3,
+          flex: 5,
           child: ElevatedButton.icon(
             onPressed: () {
               showCupertinoModalPopup(
